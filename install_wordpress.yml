@@ -1,0 +1,24 @@
+---
+- hosts: webserver
+  become: yes
+  gather_facts: no
+  vars_files:
+    - roles/ez.wordpress/vars/var.yml
+  roles:
+    - { role: ez.wordpress, tags: ['ez.wordpress'] }
+# ---------- Notes ---------
+
+## To run ansibe-playbook with mitogen
+
+# wget https://networkgenomics.com/try/mitogen-0.2.8.tar.gz
+# tar xvf mitogen-0.2.8.tar.gz 
+# rm -f mitogen-0.2.8.tar.gz 
+# echo "[defaults]
+# strategy_plugins = ./mitogen-0.2.8/ansible_mitogen/plugins/strategy" > ./ansible.cfg
+
+## Ansible-playbook cheatsheet
+
+# ansible-playbook -i ~/hosts.ini ssh-gateway.yaml
+# ansible-playbook -i ~/hosts.ini ssh-gateway.yaml --tags "common"
+# ansible-playbook -i ~/hosts.ini ssh-gateway.yaml --tags "guacamole"
+# ansible-playbook -i ~/hosts.ini ssh-gateway.yaml --tags "phpmyadmin"

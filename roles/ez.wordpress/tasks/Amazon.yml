@@ -1,0 +1,175 @@
+---
+#######################################################################
+# Installing full lampStack and php mysql bindings
+#######################################################################
+# - name: Create a directory if it does not exist
+#   ansible.builtin.file:
+#     path: 'tmp'
+#     state: directory
+#     mode: '0755'
+# - name: Download pip and boto
+#   shell: 'python -m ensurepip --upgrade && pip install -U boto'
+#   become: yes
+# - name: Download mysql
+#   shell: 'amazon-linux-extras install -y lamp-mariadb10.2-php7.2'
+#   become: yes
+# - name: Installing Complete LampStack
+#   yum: name={{ item }} state=present
+#   with_items:
+#   - httpd
+#   - php
+#   - tar
+ 
+# - name: Starting Lamp-Stack.
+#   service: name={{ item }} state=started enabled=yes
+#   with_items:
+#   # - mysqld
+#   - httpd
+
+# # # - name: "launching a mysql database"
+# # #   community.aws.rds:
+# # #     aws_access_key: "{{ acc_access_key }}"
+# # #     aws_secret_key: "{{ acc_secret_key }}"
+# # #     command: create
+# # #     db_engine: "MySQL"
+# # #     db_name: "{{ wordpress_db }}"
+# # #     engine_version: "8.0.23"
+# # #     instance_name: "wordpress-cluster"
+# # #     instance_type: "db.t3.micro"
+# # #     password: "{{ wordpress_password }}"
+# # #     port: 3306
+# # #     publicly_accessible: yes
+# # #     size: "20"
+# # #     region: "{{ db_region }}"
+# # #     vpc_security_groups: "{{ vpc_security_group }}"
+# # #     username: "{{ wordpress_user }}"
+# # # - meta: refresh_inventory
+# # # - pause:
+# # #     seconds: 30
+
+# - name: config credential
+#   shell: aws configure set aws_access_key_id {{ acc_access_key }}
+#   become: yes
+# - name: config credential
+#   shell: aws configure set aws_secret_access_key {{ acc_secret_key }}
+#   become: yes
+# - name: config credential
+#   shell: aws configure set default.region {{ db_region }}
+#   become: yes
+
+# # look for an existing Aurora DB cluster for this host using the AWS CLI
+# - name: check for Aurora DB cluster
+#   command: >
+#     aws rds describe-db-clusters --filters Name=db-cluster-id,Values={{ aurora_cluster_name }} --region {{ db_region }}
+#   changed_when: false
+#   register: aurora_cluster_query
+
+# - name: parse Aurora DB cluster query
+#   set_fact:
+#     aurora_cluster: "{{ aurora_cluster_query.stdout | from_json | json_query('DBClusters[0]')}}"
+
+
+# - name: create Aurora Cluster with the AWS CLI if it doesn't exist
+#   command: >
+#     aws rds create-db-cluster --db-cluster-identifier {{ aurora_cluster_name }} --engine aurora-mysql  
+#           --engine-version 5.7.12 --master-username {{ wordpress_user }} --master-user-password {{ wordpress_password }} 
+#           --region {{ db_region }} --profile default
+#   when: aurora_cluster == ''
+#   register: aurora_cluster_create
+
+- name: check for Aurora DB write instance
+  command: aws rds describe-db-instances --filters Name=db-instance-id,Values={{ wordpress_db }} --region {{ db_region }}
+  changed_when: false
+  register: aurora_instance_query
+
+- name: parse Aurora DB write instance query
+  set_fact:
+    aurora_instance: "{{ aurora_instance_query.stdout | from_json | json_query('DBInstances[0]')}}"
+
+# create the instance if it doesn't exist 
+- name: create Aurora DB write instance
+  command: >
+    aws rds create-db-instance --db-instance-identifier {{ db-write-instance-id }} \
+          --db-cluster-identifier {{ aurora_cluster_name }} --engine aurora-mysql --db-instance-class {{ aurora_instance_type }} --profile default
+  when: aurora_instance == ''
+  register: aurora_instance_create
+
+- name: parse Aurora DB instance query
+  set_fact:
+    aurora_instance: "{{ aurora_instance_create.stdout | from_json | json_query('DBInstance')}}"
+  when: aurora_instance == ''
+# - name: create Aurora DB read instance
+#   command: >
+#     aws rds create-db-instance-read-replica --db-instance-identifier {{ db-read-instance-id }} \
+#      --db-cluster-identifier {{ aurora_cluster_name }} --engine aurora-mysql --db-instance-class db.t3.micro --profile default
+#   when: aurora_instance == ''
+#   register: aurora_instance_create
+
+
+# - name: create Aurora Instance with the AWS CLI
+#   command: >
+#     aws rds create-db-instance --db-instance-identifier wordpress-write-instance \
+#      --db-cluster-identifier {{ aurora_cluster_name }} --engine aurora-mysql --db-instance-class db.t3.micro --profile default
+#   when: db_cluster_parameter_group == ''
+# - name: create Aurora Instance with the AWS CLI
+#   command: >
+#     aws rds create-db-instance-read-replica --db-instance-identifier wordpress-read-instance \
+#      --db-cluster-identifier {{ aurora_cluster_name }} --engine aurora-mysql --db-instance-class db.t3.micro --profile default
+#   when: db_cluster_parameter_group == ''
+# # #######################################################################
+# # # Configuring Mysql And Creating Necessary User,Database for wordpress
+# # #######################################################################
+
+# - name: Downloading Wodpress.
+#   get_url: url=http://www.wordpress.org/latest.tar.gz  dest=/tmp/wordpress.tar
+
+# - name: Extracting wordpress contents.
+#   unarchive: src=/tmp/wordpress.tar dest=/tmp/  remote_src=yes
+
+# - name: Copying wordpress contents.
+#   shell: "cp -r /tmp/wordpress/  /var/www/html/"
+
+
+# - name: Copying wp-config.php file.
+#   copy: src=/var/www/html/wp-config-sample.php  dest=/var/www/html/wp-config.php remote_src=yes
+
+# # #######################################################################
+# # # Cleaning extracted directory and tar file
+# # #######################################################################
+
+# # - name: Removing Wordpress.tar
+# #   file: path=/tmp/wordpress.tar state=absent
+
+# # - name: Removing Wodpress Extracted Directory.
+# #   file: path=/tmp/wordpress state=absent
+
+# # #######################################################################
+# # # Wordpress Configuration
+# # #######################################################################
+
+# - name: Chaning Doc-root permission.
+#   shell: 'chown -R apache:apache /var/www/html/'
+#   args:
+#     warn: false # set warn=false to prevent warning
+
+# # - name: Update WordPress config file
+# #   lineinfile:
+# #     dest: "/var/www/html/wp-config.php"
+# #     regexp: "{{ item.regexp }}"
+# #     line: "{{ item.line }}"
+# #   with_items:
+# #     - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{wordpress_db}}');"}
+# #     - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{wordpress_user}}');"}
+# #     - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{wordpress_password}}');"}
+# #     - {'regexp': "define\\('DB_HOST', '(.)+'\\);", 'line': "define('DB_HOST', '{{wordpress_host}}');"}
+
+
+# # #######################################################################
+# # # Final Service Restart
+# # #######################################################################
+
+# - name: Restarting LampStack.
+#   service: name={{ item }} state=restarted
+#   with_items:
+#  # - mysqld
+#   - httpd

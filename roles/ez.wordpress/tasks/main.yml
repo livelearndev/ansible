@@ -1,0 +1,5 @@
+---
+- name: OS specific tasks
+  include: "Amazon.yml"
+  tags:
+  - always

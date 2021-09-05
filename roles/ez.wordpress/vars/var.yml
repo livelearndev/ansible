@@ -1,0 +1,14 @@
+---
+# vars file for roles
+aurora_cluster_name: wordpress-cluster
+aurora_instance_type: db.t3.micro
+db-write-instance-id: wordpress-write-instance
+db-read-instance-id: wordpress-read-instance
+wordpress_db: wordpress
+wordpress_user: wpuser
+wordpress_password: password123
+acc_access_key: AKIASWHIJLCP7TTAZHRO
+acc_secret_key: 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
+db_region: us-east-1
+vpc_security_group: sg-056ad32b78d0e8218
+wordpress_host: wordpress-cluster.cpcxylj9jv6p.us-east-1.rds.amazonaws.com
